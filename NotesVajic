@@ -1,0 +1,61 @@
+ ________________________________________________________________________________________
+[Créez une application de conversion de température nommée temps écrite en temps à l’aide]
+[de la balise de flux d’images php php:7.3.						 ]
+--> oc new-app \
+php:7.3~https://github.com/RedHatTraining/DO180-apps \
+--context-dir temps --name temps
+
+
+ ______________________________
+[Connecter au Cluster OpenShift]
+--> oc login -u ${RHT_OCP4_DEV_USER} -p ${RHT_OCP4_DEV_PASSWORD} ${RHT_OCP4_MASTER_API}
+
+ ______________________________________________
+[Creer un project dans Openshift nomme "deploy"]
+--> oc new-project ${RHT_OCP4_DEV_USER}-deploy
+
+ ______________________________________
+[Connecter au Red Hat Container Catalog]
+--> podman login registry.redhat.io
+ ____________________________________________________________________________
+[Créez l’image de base de données MySQL en utilisant le fichier Containerfile]
+--> podman build -t do180-mysql-80-rhel8 .
+ ______________________________________________________________
+[Envoyer l’image MySQL par push vers votre référentiel Quay.io.]
+--> podman login quay.io -u ${RHT_OCP4_QUAY_USER}
+--> podman tag do180-mysql-80-rhel8 quay.io/${RHT_OCP4_QUAY_USER}/do180-mysql-80-rhel8
+
+ _____________________________________________________________________________________
+[Téléchargez le modèle d’application PHP de sorte que n’importe quel développeur ayant]
+[accès à votre projet puisse l’utiliser.					      ]
+--> oc create -f quote-php-template.json
+
+ _________________________________________________________________________________________
+[Traitez le modèle téléchargé, créez les ressources d’application et vérifiez leur statut.]
+--> oc process quote-php-persistent \
+-p RHT_OCP4_QUAY_USER=${RHT_OCP4_QUAY_USER} | oc create -f -
+
+ ___________________________________________________________________________
+[Vérifiez le statut du déploiement ou que l’application a bien été déployée.]
+--> oc get pods -w
+
+ ____________________________________________________________________________________________
+[Autorisez l’accès à l’application PHP Quote via le routeur OpenShift et à partir d’un réseau]
+[externe.										     ]
+--> oc expose svc quote-php
+
+ ________________________________________________________________________	
+[Utilisez la commande oc get route pour trouver le nom de domaine complet]
+--> oc get route
+
+ _________________________________________________________________________________
+[Utilisez la commande curl afin de tester l’API REST pour l’application PHP Quote.]
+--> curl -w "\n" \
+http://quote-php-${RHT_OCP4_DEV_USER}-deploy.${RHT_OCP4_WILDCARD_DOMAIN}
+
+
+ ______________________________________________________________________________
+[Avant de créer un pod de débogage, récupérez l’adresse IP du service frontend.]
+--> oc get service/frontend -o jsonpath="{.spec.clusterIP}{'\n'}"
+
+
